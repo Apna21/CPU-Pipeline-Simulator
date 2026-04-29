@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { PipelineEngine } from "@/simulation/pipelineEngine";
 import {
   EngineState,
   PipelineSnapshot,
+  NUM_REGISTERS,
 } from "@/simulation/types";
 import { DEFAULT_PROGRAM_SOURCE } from "@/simulation/sampleProgram";
 import { ParseResult } from "@/simulation/programParser";
@@ -14,13 +15,58 @@ type HistoryEntry = {
 };
 
 const DEFAULT_SPEED = 50;
+const INITIAL_MEMORY_WORDS = 64;
+
+const createDefaultRegisterState = () => {
+  const registers = new Array(NUM_REGISTERS).fill(0);
+  if (registers.length > 2) {
+    registers[2] = 100;
+  }
+  if (registers.length > 3) {
+    registers[3] = 5;
+  }
+  if (registers.length > 4) {
+    registers[4] = 2;
+  }
+  if (registers.length > 5) {
+    registers[5] = 3;
+  }
+  if (registers.length > 6) {
+    registers[6] = 1;
+  }
+  if (registers.length > 7) {
+    registers[7] = 9;
+  }
+  return registers;
+};
+
+const createDefaultMemoryState = () => {
+  const memory = new Array(INITIAL_MEMORY_WORDS).fill(0);
+  memory[0] = 7;
+  if (memory.length > 1) {
+    memory[1] = 12;
+  }
+  const idx25 = 100 >>> 2;
+  const idx26 = 104 >>> 2;
+  if (idx25 < memory.length) {
+    memory[idx25] = 7;
+  }
+  if (idx26 < memory.length) {
+    memory[idx26] = 12;
+  }
+  return memory;
+};
+
+const randomInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
 
 export const useSimulationController = () => {
   const engineRef = useRef<PipelineEngine | null>(null);
   const snapshotRef = useRef<PipelineSnapshot | null>(null);
   const historyRef = useRef<HistoryEntry[]>([]);
   const playTimerRef = useRef<number | null>(null);
-  const demoSeededRef = useRef(false);
+  const initialisedRef = useRef(false);
+  const initialRegistersRef = useRef<number[]>(createDefaultRegisterState());
+  const initialMemoryRef = useRef<number[]>(createDefaultMemoryState());
 
   if (engineRef.current === null) {
     engineRef.current = new PipelineEngine();
@@ -30,6 +76,134 @@ export const useSimulationController = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [speed, setSpeed] = useState(DEFAULT_SPEED);
   const [historyDepth, setHistoryDepth] = useState(0);
+  const [initialRegisters, setInitialRegisters] = useState<number[]>(() => [...initialRegistersRef.current]);
+  const [initialMemory, setInitialMemory] = useState<number[]>(() => [...initialMemoryRef.current]);
+
+  const applyInitialStateToEngine = useCallback((engine: PipelineEngine) => {
+    const state = engine.exportState();
+
+    const registers = new Int32Array(state.cpu.registers);
+    const desiredRegisters = initialRegistersRef.current;
+    const registerCount = Math.min(registers.length, desiredRegisters.length);
+    for (let i = 0; i < registerCount; i += 1) {
+      registers[i] = i === 0 ? 0 : desiredRegisters[i] | 0;
+    }
+    if (registers.length > 0) {
+      registers[0] = 0;
+    }
+    state.cpu.registers = registers;
+
+    const memory = new Int32Array(state.cpu.memory);
+    const desiredMemory = initialMemoryRef.current;
+    const memoryCount = Math.min(memory.length, desiredMemory.length);
+    for (let i = 0; i < memoryCount; i += 1) {
+      memory[i] = desiredMemory[i] | 0;
+    }
+    state.cpu.memory = memory;
+
+    engine.restoreState(state);
+    return engine.getSnapshot();
+  }, []);
+
+  const setInitialRegisterValue = useCallback((index: number, value: number) => {
+    if (index === 0) {
+      return;
+    }
+    setInitialRegisters((prev) => {
+      if (index < 0 || index >= prev.length) {
+        return prev;
+      }
+      const next = [...prev];
+      next[index] = value | 0;
+      initialRegistersRef.current = next;
+      return next;
+    });
+  }, []);
+
+  const setInitialMemoryValue = useCallback((index: number, value: number) => {
+    setInitialMemory((prev) => {
+      if (index < 0 || index >= prev.length) {
+        return prev;
+      }
+      const next = [...prev];
+      next[index] = value | 0;
+      initialMemoryRef.current = next;
+      return next;
+    });
+  }, []);
+
+  const resetInitialRegisters = useCallback(() => {
+    const defaults = createDefaultRegisterState();
+    initialRegistersRef.current = defaults;
+    setInitialRegisters([...defaults]);
+  }, []);
+
+  const resetInitialMemory = useCallback(() => {
+    const defaults = createDefaultMemoryState();
+    initialMemoryRef.current = defaults;
+    setInitialMemory([...defaults]);
+  }, []);
+
+  const randomizeInitialRegisters = useCallback(() => {
+    setInitialRegisters((prev) => {
+      const next = prev.map((_, index) => (index === 0 ? 0 : randomInt(0, 20)));
+      initialRegistersRef.current = next;
+      return next;
+    });
+  }, []);
+
+  const randomizeInitialMemory = useCallback(() => {
+    setInitialMemory((prev) => {
+      const next = prev.map(() => randomInt(0, 50));
+      initialMemoryRef.current = next;
+      return next;
+    });
+  }, []);
+
+  const resetInitialStateToDefaults = useCallback(() => {
+    resetInitialRegisters();
+    resetInitialMemory();
+  }, [resetInitialMemory, resetInitialRegisters]);
+
+  const applyInitialRegisterPatch = useCallback((patch: Record<number, number>) => {
+    if (!patch) {
+      return;
+    }
+    setInitialRegisters((prev) => {
+      const next = [...prev];
+      Object.entries(patch).forEach(([key, rawValue]) => {
+        const index = Number(key);
+        if (!Number.isFinite(index) || index < 0 || index >= next.length) {
+          return;
+        }
+        if (index === 0) {
+          next[index] = 0;
+          return;
+        }
+        next[index] = rawValue | 0;
+      });
+      initialRegistersRef.current = next;
+      return next;
+    });
+  }, []);
+
+  const applyInitialMemoryPatch = useCallback((patch: Record<number, number>) => {
+    if (!patch) {
+      return;
+    }
+    setInitialMemory((prev) => {
+      const next = [...prev];
+      Object.entries(patch).forEach(([key, rawValue]) => {
+        const index = Number(key);
+        if (!Number.isFinite(index) || index < 0 || index >= next.length) {
+          return;
+        }
+        next[index] = rawValue | 0;
+      });
+      initialMemoryRef.current = next;
+      return next;
+    });
+  }, []);
 
   const clearTimer = useCallback(() => {
     if (playTimerRef.current !== null) {
@@ -42,6 +216,14 @@ export const useSimulationController = () => {
     snapshotRef.current = next;
     setSnapshot(next);
   }, []);
+
+  const applyCurrentInitialState = useCallback(() => {
+    const engine = engineRef.current;
+    if (!engine) return null;
+    const snapshot = applyInitialStateToEngine(engine);
+    updateSnapshot(snapshot);
+    return snapshot;
+  }, [applyInitialStateToEngine, updateSnapshot]);
 
   const pushHistory = useCallback(() => {
     const engine = engineRef.current;
@@ -94,9 +276,9 @@ export const useSimulationController = () => {
     updateSnapshot(entry.snapshot);
   }, [clearTimer, popHistory, updateSnapshot]);
 
-  const reset = useCallback(() => {
+  const resetExecution = useCallback(() => {
     const engine = engineRef.current;
-    if (!engine) return;
+    if (!engine) return null;
 
     clearTimer();
     setIsPlaying(false);
@@ -104,9 +286,10 @@ export const useSimulationController = () => {
     setHistoryDepth(0);
 
     engine.reset();
-    const freshSnapshot = engine.getSnapshot();
+    const freshSnapshot = applyInitialStateToEngine(engine);
     updateSnapshot(freshSnapshot);
-  }, [clearTimer, updateSnapshot]);
+    return freshSnapshot;
+  }, [applyInitialStateToEngine, clearTimer, updateSnapshot]);
 
   const loadProgramFromSource = useCallback(
     (source: string): ParseResult => {
@@ -122,12 +305,12 @@ export const useSimulationController = () => {
 
       const result = engine.loadProgramFromSource(source);
       if (result.errors.length === 0) {
-        const freshSnapshot = engine.getSnapshot();
+        const freshSnapshot = applyInitialStateToEngine(engine);
         updateSnapshot(freshSnapshot);
       }
       return result;
     },
-    [clearTimer, updateSnapshot]
+    [applyInitialStateToEngine, clearTimer, updateSnapshot]
   );
 
   const togglePlay = useCallback(() => {
@@ -154,44 +337,29 @@ export const useSimulationController = () => {
   useEffect(() => {
     const engine = engineRef.current;
     if (!engine) return;
-    try {
-      const { instructions, errors } = engine.loadProgramFromSource(DEFAULT_PROGRAM_SOURCE);
-      if (errors.length > 0 || instructions.length === 0) {
+
+    if (!initialisedRef.current) {
+      try {
+        const { instructions, errors } = engine.loadProgramFromSource(DEFAULT_PROGRAM_SOURCE);
+        if (errors.length > 0 || instructions.length === 0) {
+          const emptySnapshot = engine.getSnapshot();
+          updateSnapshot(emptySnapshot);
+        } else {
+          const seededSnapshot = applyInitialStateToEngine(engine);
+          updateSnapshot(seededSnapshot);
+        }
+      } catch (error) {
         const emptySnapshot = engine.getSnapshot();
         updateSnapshot(emptySnapshot);
-        return;
+        console.error("Failed to load default program:", error);
       }
-      if (!demoSeededRef.current) {
-        const state = engine.exportState();
-        const registers = new Int32Array(state.cpu.registers);
-        if (registers.length >= 6) {
-          registers[1] = 5;
-          registers[2] = 100;
-          registers[3] = 8;
-          registers[4] = 0;
-          registers[5] = 2;
-        }
-        state.cpu.registers = registers;
-        const memory = new Int32Array(state.cpu.memory);
-        if (memory.length > (100 >>> 2)) {
-          memory[100 >>> 2] = 0;
-        }
-        state.cpu.memory = memory;
-        engine.restoreState(state);
-        demoSeededRef.current = true;
-      }
-      const seededSnapshot = engine.getSnapshot();
-      updateSnapshot(seededSnapshot);
-    } catch (error) {
-      const emptySnapshot = engine.getSnapshot();
-      updateSnapshot(emptySnapshot);
-      console.error("Failed to load default program:", error);
+      initialisedRef.current = true;
     }
-    // Cleanup on unmount
+
     return () => {
       clearTimer();
     };
-  }, [clearTimer, updateSnapshot]);
+  }, [applyInitialStateToEngine, clearTimer, updateSnapshot]);
 
   // Sync snapshot ref whenever snapshot state changes
   useEffect(() => {
@@ -228,8 +396,21 @@ export const useSimulationController = () => {
     step,
     stepBack,
     canStepBack,
-    reset,
+    reset: resetExecution,
     loadProgramFromSource,
     historyDepth,
+    initialRegisters,
+    initialMemory,
+    setInitialRegisterValue,
+    setInitialMemoryValue,
+    resetInitialRegisters,
+    resetInitialMemory,
+    randomizeInitialRegisters,
+    randomizeInitialMemory,
+    resetInitialStateToDefaults,
+    applyInitialRegisterPatch,
+    applyInitialMemoryPatch,
+    applyCurrentInitialState,
+    applyInitialStateAndReset: resetExecution,
   };
 };

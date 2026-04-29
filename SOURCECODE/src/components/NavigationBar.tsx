@@ -39,6 +39,9 @@ export const NavigationBar = () => {
             <NavLink to="/learn" className={navLinkClass}>
               Tutorials
             </NavLink>
+            <NavLink to="/quiz" className={navLinkClass}>
+              Quiz Mode
+            </NavLink>
           </div>
           <Button
             variant="outline"

@@ -10,10 +10,12 @@ import {
   IDEXRegister,
   IFIDRegister,
   MEMWBRegister,
+  MemoryAccessEvent,
   PipelineRegisters,
   PipelineSnapshot,
   PipelineStageName,
   PipelineStats,
+  RegisterWriteEvent,
   SimulationOptions,
   StageView,
   EngineState,
@@ -59,6 +61,10 @@ export class PipelineEngine {
   private flushedThisCycle = false;
   private forwardingThisCycle: ForwardingInfo = {};
   private hazardEventsThisCycle: HazardEvent[] = [];
+  private registerWriteThisCycle: RegisterWriteEvent | null = null;
+  private memoryAccessThisCycle: MemoryAccessEvent | null = null;
+  private lastRegisterWrite: RegisterWriteEvent | null = null;
+  private lastMemoryAccess: MemoryAccessEvent | null = null;
 
   constructor(options: SimulationOptions = {}) {
     this.options = {
@@ -92,6 +98,10 @@ export class PipelineEngine {
     this.stageHazards = {};
     this.currentFetchInstruction = null;
     this.cpu.halted = this.program.length === 0;
+    this.registerWriteThisCycle = null;
+    this.memoryAccessThisCycle = null;
+    this.lastRegisterWrite = null;
+    this.lastMemoryAccess = null;
   }
 
   getSnapshot(): PipelineSnapshot {
@@ -103,6 +113,8 @@ export class PipelineEngine {
       cpu: cloneCpuState(this.cpu),
       pipeline: deepCopyPipeline(this.pipeline),
       currentFetchInstruction: this.currentFetchInstruction,
+      lastRegisterWrite: this.lastRegisterWrite ? { ...this.lastRegisterWrite } : null,
+      lastMemoryAccess: this.lastMemoryAccess ? { ...this.lastMemoryAccess } : null,
     };
   }
 
@@ -110,6 +122,10 @@ export class PipelineEngine {
     this.cpu = cloneCpuState(state.cpu);
     this.pipeline = deepCopyPipeline(state.pipeline);
     this.currentFetchInstruction = state.currentFetchInstruction;
+    this.lastRegisterWrite = state.lastRegisterWrite ? { ...state.lastRegisterWrite } : null;
+    this.lastMemoryAccess = state.lastMemoryAccess ? { ...state.lastMemoryAccess } : null;
+    this.registerWriteThisCycle = null;
+    this.memoryAccessThisCycle = null;
     this.stageHazards = {};
     this.stalledThisCycle = false;
     this.flushedThisCycle = false;
@@ -127,6 +143,8 @@ export class PipelineEngine {
     this.flushedThisCycle = false;
     this.forwardingThisCycle = {};
     this.hazardEventsThisCycle = [];
+    this.registerWriteThisCycle = null;
+    this.memoryAccessThisCycle = null;
     const previousPipeline = deepCopyPipeline(this.pipeline);
 
     // 1. Write Back stage (uses previous MEM/WB register)
@@ -171,6 +189,14 @@ export class PipelineEngine {
 
     // Update stats
     this.cpu.stats.cycleCount += 1;
+    if (this.registerWriteThisCycle) {
+      this.lastRegisterWrite = { ...this.registerWriteThisCycle };
+    }
+    if (this.memoryAccessThisCycle) {
+      this.lastMemoryAccess = { ...this.memoryAccessThisCycle };
+    }
+    this.registerWriteThisCycle = null;
+    this.memoryAccessThisCycle = null;
     if (executeResult.forwardsApplied > 0) {
       this.cpu.stats.forwardCount += executeResult.forwardsApplied;
       const forwardSummary = [
@@ -216,6 +242,13 @@ export class PipelineEngine {
     const registersCopy = new Int32Array(this.cpu.registers);
     registersCopy[dest] = memWb.writeData;
     this.cpu.registers = registersCopy;
+    this.registerWriteThisCycle = {
+      registerIndex: dest,
+      register: this.formatRegister(dest) ?? `R${dest}`,
+      value: memWb.writeData,
+      cycle: this.getEventCycle(),
+      instruction: memWb.instruction?.raw ?? memWb.instruction?.opcode,
+    };
   }
 
   private handleMemory(exMem: EXMEMRegister): MEMWBRegister {
@@ -225,13 +258,37 @@ export class PipelineEngine {
 
     let memoryData = 0;
     const address = exMem.aluResult;
+    const wordAddress = address >>> 2;
+    const addressInRange = wordAddress >= 0 && wordAddress < this.cpu.memory.length;
+    const instruction = exMem.instruction;
+    const instructionLabel = instruction?.raw ?? instruction?.opcode;
 
     if (exMem.control.memRead) {
       memoryData = this.safeReadMemory(address);
+      if (addressInRange) {
+        this.memoryAccessThisCycle = {
+          type: "LOAD",
+          address,
+          wordAddress,
+          value: memoryData,
+          cycle: this.getEventCycle(),
+          instruction: instructionLabel,
+        };
+      }
     }
 
     if (exMem.control.memWrite) {
       this.safeWriteMemory(address, exMem.writeData);
+      if (addressInRange) {
+        this.memoryAccessThisCycle = {
+          type: "STORE",
+          address,
+          wordAddress,
+          value: exMem.writeData,
+          cycle: this.getEventCycle(),
+          instruction: instructionLabel,
+        };
+      }
     }
 
     return {
@@ -553,6 +610,8 @@ export class PipelineEngine {
       flushedThisCycle: this.flushedThisCycle,
       forwarding: { ...this.forwardingThisCycle },
       hazardEvents: [...this.hazardEventsThisCycle],
+      lastRegisterWrite: this.lastRegisterWrite ? { ...this.lastRegisterWrite } : null,
+      lastMemoryAccess: this.lastMemoryAccess ? { ...this.lastMemoryAccess } : null,
     };
   }
 

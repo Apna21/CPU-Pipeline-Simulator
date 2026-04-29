@@ -3,6 +3,15 @@ import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import {
+  Layers,
+  AlertTriangle,
+  PlayCircle,
+  Sun,
+  BookOpen,
+  Activity,
+  ArrowRight,
+} from "lucide-react";
 import stageIFVideo from "../../CPU VIDS/1.mp4";
 import stageIDVideo from "../../CPU VIDS/2.mp4";
 import stageEXVideo from "../../CPU VIDS/3.mp4";
@@ -167,43 +176,91 @@ const EducationalContentPage = () => {
 
   return (
     <main className="bg-background text-foreground">
-      <div className="container mx-auto px-4 py-12 md:py-16 space-y-12">
-        <section className="space-y-4">
-          <h2 className="text-3xl font-bold">Learn CPU Pipelining</h2>
-          <p className="text-lg text-muted-foreground max-w-3xl">
-            Pipelining boosts CPU throughput by overlapping instruction execution. This learning hub
-            summarises the core ideas, explains each pipeline stage, and highlights common hazards you can
-            observe in the simulator.
-          </p>
-        </section>
-
-        <section className="space-y-6">
-          <h3 className="text-2xl font-semibold">Introduction to CPU Pipelining</h3>
-          <Card className="p-6 border border-border/60 bg-muted/30">
-            <p className="text-muted-foreground leading-relaxed">
-              A pipeline breaks instruction execution into sequential stages. While one instruction is
-              executing, another can be decoding, and a third can be fetched, increasing overall throughput.
-              The trade-off is the need to handle hazards—situations where there is a dependency or control
-              change that interrupts smooth flow. This simulator models a classic five-stage pipeline and
-              makes hazards visible through colour-coded cues.
-            </p>
-            <div className="mt-4 p-4 border-l-4 border-primary bg-primary/10 text-primary text-sm">
-              Diagram placeholder: Imagine a horizontal flow showing IF → ID → EX → MEM → WB with multiple
-              instructions staggered along the stages.
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.09),_transparent_45%),radial-gradient(circle_at_bottom,_rgba(59,130,246,0.05),_transparent_45%)]" />
+        <div className="relative container mx-auto px-4 py-16 md:py-20 space-y-16">
+          <section className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+            <div className="space-y-6">
+              <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1 text-xs font-semibold text-primary uppercase tracking-[0.25em]">
+                Learn · Observe · Explain
+              </span>
+              <div className="space-y-4">
+                <h1 className="text-4xl md:text-5xl font-bold leading-tight">
+                  Tutorials that turn pipeline theory into{" "}
+                  <span className="text-primary">interactive insight</span>.
+                </h1>
+                <p className="text-lg text-muted-foreground max-w-2xl">
+                  Follow modular lessons on pipeline stages, hazards, and examples. Each section links
+                  directly to simulator scenarios so you can validate what you read.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2 rounded-md border border-border/60 bg-background/70 px-4 py-2">
+                  <Layers className="w-4 h-4 text-primary" />
+                  <span>5 stages explained</span>
+                </div>
+                <div className="flex items-center gap-2 rounded-md border border-border/60 bg-background/70 px-4 py-2">
+                  <AlertTriangle className="w-4 h-4 text-primary" />
+                  <span>Hazards visualised in context</span>
+                </div>
+                <div className="flex items-center gap-2 rounded-md border border-border/60 bg-background/70 px-4 py-2">
+                  <PlayCircle className="w-4 h-4 text-primary" />
+                  <span>Guided examples &amp; videos</span>
+                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button size="lg" asChild>
+                  <Link to="/simulator" className="flex items-center gap-2">
+                    Open Simulator
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </Button>
+                <Button size="lg" variant="outline" asChild>
+                  <Link to="/quiz">Try Quiz Mode</Link>
+                </Button>
+              </div>
             </div>
-          </Card>
-        </section>
+            <Card className="relative overflow-hidden border border-border/60 bg-muted/30 shadow-xl">
+              <div className="absolute -top-32 -right-24 h-48 w-48 rounded-full bg-primary/20 blur-3xl" />
+              <div className="absolute -bottom-32 -left-24 h-48 w-48 rounded-full bg-primary/10 blur-3xl" />
+              <div className="relative p-6 md:p-8 space-y-4">
+                <div className="flex items-center gap-3 text-primary">
+                  <Sun className="w-6 h-6" />
+                  <h2 className="text-xl font-semibold text-foreground">What you’ll learn</h2>
+                </div>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Each tutorial collapses the gap between diagrams and execution. Watch hazards unfold,
+                  inspect register updates, and leverage pre-built simulator scenarios that align with each
+                  concept.
+                </p>
+                <div className="grid gap-3 text-sm text-muted-foreground">
+                  <div className="rounded-md border border-border/60 bg-background/60 px-4 py-3">
+                    • Pipeline stage quick reference with focused videos.
+                  </div>
+                  <div className="rounded-md border border-border/60 bg-background/60 px-4 py-3">
+                    • Hazard spotlights that highlight stalls, forwarding, and flushes.
+                  </div>
+                  <div className="rounded-md border border-border/60 bg-background/60 px-4 py-3">
+                    • Guided examples with questions to test understanding.
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </section>
 
-        <section className="space-y-6">
-          <h3 className="text-2xl font-semibold">The Five Pipeline Stages</h3>
-          <div className="grid gap-6 md:grid-cols-2">
-            {stageDetails.map((stage) => {
+          <section className="space-y-6">
+            <div className="flex items-center gap-3">
+              <Layers className="w-5 h-5 text-primary" />
+              <h3 className="text-2xl font-semibold">The five pipeline stages</h3>
+            </div>
+            <div className="grid gap-6 md:grid-cols-2">
+              {stageDetails.map((stage) => {
               const isOpen = openStages[stage.name];
               return (
                 <Card
                   key={stage.name}
                   onClick={() => toggleStage(stage.name)}
-                  className="p-6 border border-border/60 bg-background shadow-sm space-y-3 cursor-pointer transition-transform hover:-translate-y-1 hover:shadow-lg"
+                  className="p-6 border border-border/70 bg-background/95 shadow-sm space-y-3 cursor-pointer transition duration-200 hover:-translate-y-1 hover:shadow-lg"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -238,19 +295,22 @@ const EducationalContentPage = () => {
                 </Card>
               );
             })}
-          </div>
-        </section>
+            </div>
+          </section>
 
-        <section className="space-y-6">
-          <h3 className="text-2xl font-semibold">Hazards and How to Spot Them</h3>
-          <div className="grid gap-6 md:grid-cols-2">
-            {hazardTopics.map((topic) => {
+          <section className="space-y-6">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="w-5 h-5 text-primary" />
+              <h3 className="text-2xl font-semibold">Hazards and how to spot them</h3>
+            </div>
+            <div className="grid gap-6 md:grid-cols-2">
+              {hazardTopics.map((topic) => {
               const isOpen = openHazards[topic.title];
               return (
                 <Card
                   key={topic.title}
                   onClick={() => toggleHazard(topic.title)}
-                  className="p-6 border border-border/60 bg-background shadow-sm space-y-3 cursor-pointer transition-transform hover:-translate-y-1 hover:shadow-lg"
+                  className="p-6 border border-border/70 bg-background/95 shadow-sm space-y-3 cursor-pointer transition duration-200 hover:-translate-y-1 hover:shadow-lg"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -280,19 +340,22 @@ const EducationalContentPage = () => {
                 </Card>
               );
             })}
-          </div>
-        </section>
+            </div>
+          </section>
 
-        <section className="space-y-6">
-          <h3 className="text-2xl font-semibold">Guided Example Walkthroughs</h3>
-          <div className="grid gap-6 lg:grid-cols-3">
-            {guidedExamples.map((example) => {
+          <section className="space-y-6">
+            <div className="flex items-center gap-3">
+              <PlayCircle className="w-5 h-5 text-primary" />
+              <h3 className="text-2xl font-semibold">Guided example walkthroughs</h3>
+            </div>
+            <div className="grid gap-6 lg:grid-cols-3">
+              {guidedExamples.map((example) => {
               const isOpen = openExamples[example.title];
               return (
                 <Card
                   key={example.title}
                   onClick={() => toggleExample(example.title)}
-                  className="p-6 border border-border/60 bg-background shadow-sm space-y-3 cursor-pointer transition-transform hover:-translate-y-1 hover:shadow-lg"
+                  className="p-6 border border-border/70 bg-background/95 shadow-sm space-y-3 cursor-pointer transition duration-200 hover:-translate-y-1 hover:shadow-lg"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -334,23 +397,36 @@ const EducationalContentPage = () => {
                 </Card>
               );
             })}
-          </div>
-        </section>
+            </div>
+          </section>
 
-        <section className="space-y-4 text-center">
-          <h3 className="text-2xl font-semibold">Ready to put this into practice?</h3>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            Launch the simulator to apply what you’ve learned, or head back to the landing page to explore features.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button size="lg" asChild>
-              <Link to="/simulator">Open Simulator</Link>
-            </Button>
-            <Button size="lg" variant="outline" asChild>
-              <Link to="/">Back to Home</Link>
-            </Button>
-          </div>
-        </section>
+          <section className="space-y-6">
+            <Card className="border border-primary/40 bg-primary/10 shadow-inner p-6 md:p-8">
+              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <h3 className="text-xl font-semibold text-primary-foreground/80">
+                    Continue your learning loop
+                  </h3>
+                  <p className="text-sm text-primary-foreground/70 max-w-2xl">
+                    Dive into the simulator to test what you’ve read, or tackle Quiz Mode for knowledge
+                    checks that link straight back to these tutorials.
+                  </p>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button variant="secondary" className="sm:w-auto" asChild>
+                    <Link to="/quiz" className="flex items-center gap-2">
+                      Go to Quiz Mode
+                      <ArrowRight className="w-4 h-4" />
+                    </Link>
+                  </Button>
+                  <Button variant="outline" className="sm:w-auto border-primary/60 text-primary" asChild>
+                    <Link to="/simulator">Open Simulator</Link>
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </section>
+        </div>
       </div>
     </main>
   );

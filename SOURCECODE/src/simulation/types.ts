@@ -111,6 +111,25 @@ export interface ForwardingInfo {
   bFrom?: ForwardSource;
 }
 
+export interface RegisterWriteEvent {
+  registerIndex: number;
+  register: string;
+  value: number;
+  cycle: number;
+  instruction?: string;
+}
+
+export type MemoryAccessType = "LOAD" | "STORE";
+
+export interface MemoryAccessEvent {
+  type: MemoryAccessType;
+  address: number;
+  wordAddress: number;
+  value: number;
+  cycle: number;
+  instruction?: string;
+}
+
 export type HazardEventType = "STALL" | "FORWARD" | "FLUSH";
 
 export interface HazardEvent {
@@ -139,6 +158,8 @@ export interface PipelineSnapshot {
   flushedThisCycle: boolean;
   forwarding: ForwardingInfo;
   hazardEvents: HazardEvent[];
+  lastRegisterWrite: RegisterWriteEvent | null;
+  lastMemoryAccess: MemoryAccessEvent | null;
 }
 
 export interface SimulationOptions {
@@ -150,6 +171,8 @@ export interface EngineState {
   cpu: CPUState;
   pipeline: PipelineRegisters;
   currentFetchInstruction: DecodedInstruction | null;
+  lastRegisterWrite: RegisterWriteEvent | null;
+  lastMemoryAccess: MemoryAccessEvent | null;
 }
 
 

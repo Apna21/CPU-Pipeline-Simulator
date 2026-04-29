@@ -7,6 +7,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import LandingPage from "@/pages/LandingPage";
 import SimulatorPage from "@/pages/SimulatorPage";
 import EducationalContentPage from "@/pages/EducationalContentPage";
+import QuizPage from "@/pages/QuizPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const App = () => (
             <Route index element={<LandingPage />} />
             <Route path="simulator" element={<SimulatorPage />} />
             <Route path="learn" element={<EducationalContentPage />} />
+            <Route path="quiz" element={<QuizPage />} />
             <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>

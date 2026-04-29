@@ -71,7 +71,7 @@ describe("Hazard Detection Unit", () => {
 
   it("flushes wrong-path instructions on taken branches", () => {
     const source = `
-      BEQ R1, R2, +2
+      BEQ R1, R2, 2
       ADD R3, R3, R3
       ADD R4, R4, R4
     `;
