@@ -139,5 +139,5 @@ Additional engineering documentation is available under [`docs/`](./docs/), cove
 
 ## Author
 
-Developed by **Zain Tariq** (Student ID `32001784`) as part of the CS3IP final year project, University of Reading, 2025–2026.
+Developed by **Zain Chohan** (Student ID `32001784`) as part of the CS3IP final year project, University of Reading, 2025–2026.
 
